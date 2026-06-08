@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulpit Przetargów — monitoring materiałowy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4f1ea;        /* tlo - papier */
+    --card:#fffdf8;         /* karta */
+    --ink:#1c1b18;          /* tekst glowny */
+    --muted:#6b675e;        /* tekst drugorzedny */
+    --line:#d9d4c7;         /* linie */
+    --safety:#e8590c;       /* hi-vis pomaranczowy - akcent */
+    --safety-soft:#fbe5d6;  /* tlo akcentu */
+    --steel:#2f5d7c;        /* stalowy niebieski - dla wynikow */
+    --steel-soft:#dde8ef;
+    --ok:#3b6d11;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans',sans-serif;
+    line-height:1.5;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:48px 48px;
+    background-position:-1px -1px;
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px 80px}
+
+  /* ---- NAGLOWEK ---- */
+  header{
+    border-bottom:2px solid var(--ink);
+    padding:32px 0 24px;
+    margin-bottom:32px;
+    display:flex;justify-content:space-between;align-items:flex-end;
+    flex-wrap:wrap;gap:20px;
+  }
+  .brand .kicker{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--safety);font-weight:500;
+  }
+  .brand h1{
+    font-family:'Bricolage Grotesque',sans-serif;font-weight:700;
+    font-size:clamp(30px,5vw,46px);line-height:1.02;letter-spacing:-.02em;margin-top:4px;
+  }
+  .brand p{color:var(--muted);font-size:14px;margin-top:6px;max-width:46ch}
+
+  .loadbtn{
+    display:inline-flex;align-items:center;gap:8px;cursor:pointer;
+    background:var(--ink);color:var(--paper);border:none;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;
+    padding:12px 18px;letter-spacing:.03em;transition:transform .12s,background .2s;
+  }
+  .loadbtn:hover{background:var(--safety);transform:translateY(-1px)}
+  .loadbtn svg{width:16px;height:16px}
+
+  /* ---- STATYSTYKI ---- */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-bottom:28px;
+    border:1.5px solid var(--ink);background:var(--card)}
+  .stat{padding:18px 20px;border-right:1.5px solid var(--ink)}
+  .stat:last-child{border-right:none}
+  .stat .num{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:38px;line-height:1}
+  .stat .lbl{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);margin-top:6px}
+  .stat.accent .num{color:var(--safety)}
+  .stat.steel .num{color:var(--steel)}
+
+  /* ---- FILTRY ---- */
+  .filters{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:24px}
+  .search{flex:1;min-width:220px;position:relative}
+  .search input{
+    width:100%;padding:11px 14px 11px 38px;border:1.5px solid var(--line);
+    background:var(--card);font-family:'IBM Plex Sans',sans-serif;font-size:14px;color:var(--ink);
+  }
+  .search input:focus{outline:none;border-color:var(--safety)}
+  .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted)}
+  .toggle{display:flex;border:1.5px solid var(--ink)}
+  .toggle button{
+    background:var(--card);border:none;cursor:pointer;padding:10px 16px;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.04em;
+    color:var(--muted);border-right:1.5px solid var(--ink);transition:all .15s;
+  }
+  .toggle button:last-child{border-right:none}
+  .toggle button.active{background:var(--ink);color:var(--paper)}
+
+  /* ---- KARTY ---- */
+  .list{display:flex;flex-direction:column;gap:14px}
+  .card{
+    background:var(--card);border:1.5px solid var(--line);
+    padding:20px 22px;position:relative;transition:border-color .15s,transform .15s;
+    animation:rise .4s ease backwards;
+  }
+  .card:hover{border-color:var(--ink);transform:translateX(2px)}
+  .card.wynik{border-left:5px solid var(--steel)}
+  .card.zamowienie{border-left:5px solid var(--safety)}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+
+  .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:8px}
+  .badge{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;padding:4px 9px;font-weight:500;white-space:nowrap;
+  }
+  .badge.zamowienie{background:var(--safety-soft);color:var(--safety)}
+  .badge.wynik{background:var(--steel-soft);color:var(--steel)}
+  .card .date{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap}
+  .card h3{font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:18px;
+    line-height:1.25;letter-spacing:-.01em;margin-bottom:10px}
+
+  .meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-bottom:10px}
+  .meta .m{font-size:13px;color:var(--ink);display:flex;flex-direction:column;line-height:1.3}
+  .meta .mk{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:1px}
+  .meta .termin .mk{color:var(--safety)}
+  .meta .termin{font-weight:600}
+  .opis{font-size:13.5px;color:var(--muted);line-height:1.5;margin-bottom:10px;
+    border-left:2px solid var(--line);padding-left:12px}
+
+  .winner{
+    background:var(--steel-soft);border:1px solid #c4d6e2;padding:12px 14px;margin:10px 0;
+    display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+  }
+  .winner .who .wl{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--steel);margin-bottom:3px}
+  .winner .who .wn{font-weight:600;font-size:15px}
+  .winner .who .nip{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);margin-top:2px}
+  .copybtn{background:var(--steel);color:#fff;border:none;cursor:pointer;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;padding:8px 12px;white-space:nowrap;transition:opacity .15s}
+  .copybtn:hover{opacity:.85}
+  .copybtn.done{background:var(--ok)}
+
+  .card .foot{display:flex;justify-content:space-between;align-items:center;margin-top:6px;gap:12px;flex-wrap:wrap}
+  .cpv{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}
+  .cpv b{color:var(--ink);font-weight:500}
+  .pdflink{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--safety);
+    text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s}
+  .pdflink:hover{border-bottom-color:var(--safety)}
+
+  .empty{text-align:center;padding:60px 20px;color:var(--muted);border:1.5px dashed var(--line);background:var(--card)}
+  .empty .big{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;color:var(--ink);margin-bottom:8px}
+
+  .dropzone.over{outline:3px dashed var(--safety);outline-offset:6px}
+  footer{margin-top:40px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+    color:var(--muted);text-align:center;letter-spacing:.04em}
+
+  @media(max-width:640px){
+    .stats{grid-template-columns:1fr;}
+    .stat{border-right:none;border-bottom:1.5px solid var(--ink)}
+    .stat:last-child{border-bottom:none}
+  }
+</style>
+</head>
+<body class="dropzone" id="drop">
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="kicker">Monitoring materiałowy · BZP / e-Zamówienia</div>
+      <h1>Pulpit Przetargów</h1>
+      <p>Przetargi dachowe i asekuracyjne oraz ich rozstrzygnięcia. Wyniki pokazują zwycięzcę i NIP — gotowy lead do oferty na materiał.</p>
+    </div>
+    <div>
+      <button class="loadbtn" onclick="document.getElementById('file').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Wczytaj CSV
+      </button>
+      <input type="file" id="file" accept=".csv" hidden>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="num" id="s-all">0</div><div class="lbl">Ogłoszeń łącznie</div></div>
+    <div class="stat accent"><div class="num" id="s-zam">0</div><div class="lbl">Nowe przetargi</div></div>
+    <div class="stat steel"><div class="num" id="s-wyn">0</div><div class="lbl">Wyniki / leady</div></div>
+  </div>
+
+  <div class="filters">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="text" id="q" placeholder="Szukaj: tytuł, zamawiający, lokalizacja, NIP, kod CPV…">
+    </div>
+    <div class="toggle" id="toggle">
+      <button data-t="all" class="active">Wszystkie</button>
+      <button data-t="zamowienie">Przetargi</button>
+      <button data-t="wynik">Wyniki</button>
+    </div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <footer>Dane: skrypt monitor_przetargow.py → plik CSV. Przeciągnij plik tutaj lub kliknij „Wczytaj CSV". Teraz: dane demonstracyjne.</footer>
+</div>
+
+<script>
+// ---- dane demonstracyjne (zastapione po wczytaniu Twojego CSV) ----
+let dane = [
+  {data:"2026-06-06",typ:"WYNIK",tytul:"Remont pokrycia dachowego budynku Szkoły Podstawowej nr 4 w Kłodzku",zwyciezca:"Dekarstwo Kowalski Sp. z o.o.",nip:"8831523456",cpv:"45261900",zamawiajacy:"Gmina Miejska Kłodzko",lokalizacja:"dolnośląskie · Kłodzko",wartosc:"487 000 PLN",termin:"",opis:"Wymiana pokrycia dachowego z dachówki ceramicznej wraz z obróbkami blacharskimi, montażem ław kominiarskich i systemu zabezpieczeń przeciwupadkowych.",link:"https://ezamowienia.gov.pl/mo-client-board/bzp/list"},
+  {data:"2026-06-06",typ:"ZAMOWIENIE",tytul:"Budowa hali magazynowej z dachem wielkopowierzchniowym — Wałbrzyska SSE",zwyciezca:"",nip:"",cpv:"45261420",zamawiajacy:"Wałbrzyska Specjalna Strefa Ekonomiczna INVEST-PARK",lokalizacja:"dolnośląskie · Wałbrzych",wartosc:"12 400 000 PLN",termin:"2026-07-15 10:00",opis:"Budowa hali o powierzchni dachu ok. 8 500 m² w technologii membrany PVC, wraz z systemem komunikacji dachowej i barierami ochronnymi.",link:"https://ezamowienia.gov.pl/mo-client-board/bzp/list"},
+  {data:"2026-06-05",typ:"WYNIK",tytul:"Wymiana membrany dachowej na hali sportowej, Dzierżoniów",zwyciezca:"BUD-DACH Nowak i Wspólnicy S.J.",nip:"8821987654",cpv:"45261420",zamawiajacy:"Ośrodek Sportu i Rekreacji w Dzierżoniowie",lokalizacja:"dolnośląskie · Dzierżoniów",wartosc:"1 230 000 PLN",termin:"",opis:"Demontaż starego pokrycia i wykonanie nowej membrany dachowej na powierzchni 3 200 m².",link:"https://ezamowienia.gov.pl/mo-client-board/bzp/list"},
+  {data:"2026-06-05",typ:"ZAMOWIENIE",tytul:"Montaż systemu asekuracji i punktów kotwiczących na dachu urzędu",zwyciezca:"",nip:"",cpv:"45340000",zamawiajacy:"Starostwo Powiatowe w Ząbkowicach Śląskich",lokalizacja:"dolnośląskie · Ząbkowice Śląskie",wartosc:"96 500 PLN",termin:"2026-06-28 12:00",opis:"Dostawa i montaż stałego systemu asekuracji (lina stalowa) wraz z punktami kotwiczącymi na dachu budynku administracyjnego. Wymagane uprawnienia montażysty i certyfikaty PPE wg EN 795.",link:"https://ezamowienia.gov.pl/mo-client-board/bzp/list"},
+  {data:"2026-06-04",typ:"ZAMOWIENIE",tytul:"Przebudowa dachu skośnego wraz z barierami śniegowymi — kamienica zabytkowa",zwyciezca:"",nip:"",cpv:"45261000",zamawiajacy:"Wspólnota Mieszkaniowa Rynek 12, Świdnica",lokalizacja:"dolnośląskie · Świdnica",wartosc:"345 000 PLN",termin:"2026-07-02 09:00",opis:"Przebudowa konstrukcji i pokrycia dachu skośnego z montażem barier śniegowych i stopni kominiarskich. Obiekt pod nadzorem konserwatorskim.",link:"https://ezamowienia.gov.pl/mo-client-board/bzp/list"},
+  {data:"2026-06-04",typ:"WYNIK",tytul:"Pokrycie dachów blachą na zespole szkół, gmina Bielawa",zwyciezca:"Przedsiębiorstwo Budowlane DACHMAR",nip:"8871234509",cpv:"45261200",zamawiajacy:"Gmina Bielawa",lokalizacja:"dolnośląskie · Bielawa",wartosc:"890 000 PLN",termin:"",opis:"Wykonanie pokryć dachowych z blachy na rąbek na trzech budynkach zespołu szkół.",link:"https://ezamowienia.gov.pl/mo-client-board/bzp/list"},
+];
+const CPV_DEMO = "45261000"; // przykladowy do wyswietlenia
+
+let stan = {typ:"all", q:""};
+
+function escapeHtml(s){return (s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function render(){
+  const list=document.getElementById('list');
+  const q=stan.q.toLowerCase().trim();
+  const filtr=dane.filter(o=>{
+    if(stan.typ!=="all" && o.typ.toLowerCase()!==stan.typ) return false;
+    if(!q) return true;
+    return (o.tytul+o.zwyciezca+o.nip+(o.zamawiajacy||"")+(o.lokalizacja||"")+(o.cpv||"")).toLowerCase().includes(q);
+  });
+
+  // statystyki licza sie z calego zbioru, nie z filtra
+  document.getElementById('s-all').textContent=dane.length;
+  document.getElementById('s-zam').textContent=dane.filter(o=>o.typ.toUpperCase()==="ZAMOWIENIE").length;
+  document.getElementById('s-wyn').textContent=dane.filter(o=>o.typ.toUpperCase()==="WYNIK").length;
+
+  if(filtr.length===0){
+    list.innerHTML=`<div class="empty"><div class="big">Brak ogłoszeń</div>Zmień filtr albo wczytaj plik CSV ze skryptu.</div>`;
+    return;
+  }
+
+  list.innerHTML=filtr.map((o,i)=>{
+    const wynik=o.typ.toUpperCase()==="WYNIK";
+    const kl=wynik?"wynik":"zamowienie";
+    const etyk=wynik?"Wynik · lead":"Nowy przetarg";
+    let winnerBlock="";
+    if(wynik && o.zwyciezca){
+      winnerBlock=`<div class="winner">
+        <div class="who">
+          <div class="wl">Zwycięzca — potencjalny klient</div>
+          <div class="wn">${escapeHtml(o.zwyciezca)}</div>
+          ${o.nip?`<div class="nip">NIP ${escapeHtml(o.nip)}</div>`:""}
+        </div>
+        ${o.nip?`<button class="copybtn" onclick="kopiuj('${escapeHtml(o.nip)}',this)">Kopiuj NIP</button>`:""}
+      </div>`;
+    }
+    // wiersz z metadanymi (pokazuje tylko te pola, ktore sa wypelnione)
+    const meta=[];
+    if(o.zamawiajacy) meta.push(`<span class="m"><span class="mk">Zamawiający</span>${escapeHtml(o.zamawiajacy)}</span>`);
+    if(o.lokalizacja) meta.push(`<span class="m"><span class="mk">Lokalizacja</span>${escapeHtml(o.lokalizacja)}</span>`);
+    if(o.wartosc) meta.push(`<span class="m"><span class="mk">Wartość</span>${escapeHtml(o.wartosc)}</span>`);
+    if(o.termin && !wynik) meta.push(`<span class="m termin"><span class="mk">Termin ofert</span>${escapeHtml(o.termin)}</span>`);
+    const metaBlock = meta.length?`<div class="meta">${meta.join("")}</div>`:"";
+    const opisBlock = o.opis?`<p class="opis">${escapeHtml(o.opis)}</p>`:"";
+
+    const link=o.link && o.link!=="#"
+      ? `<a class="pdflink" href="${escapeHtml(o.link)}" target="_blank" rel="noopener">Otwórz ogłoszenie →</a>`
+      : `<span class="pdflink" style="opacity:.5">brak linku</span>`;
+    return `<article class="card ${kl}" style="animation-delay:${i*0.03}s">
+      <div class="top">
+        <span class="badge ${kl}">${etyk}</span>
+        <span class="date">${escapeHtml(o.data)}</span>
+      </div>
+      <h3>${escapeHtml(o.tytul)}</h3>
+      ${metaBlock}
+      ${opisBlock}
+      ${winnerBlock}
+      <div class="foot">
+        <span class="cpv">CPV: <b>${escapeHtml(o.cpv||"—")}</b></span>
+        ${link}
+      </div>
+    </article>`;
+  }).join("");
+}
+
+function kopiuj(nip,btn){
+  navigator.clipboard.writeText(nip).then(()=>{
+    const t=btn.textContent;btn.textContent="Skopiowano ✓";btn.classList.add("done");
+    setTimeout(()=>{btn.textContent=t;btn.classList.remove("done");},1400);
+  });
+}
+
+// ---- filtry ----
+document.getElementById('toggle').addEventListener('click',e=>{
+  if(e.target.tagName!=="BUTTON")return;
+  document.querySelectorAll('#toggle button').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active');
+  stan.typ=e.target.dataset.t;render();
+});
+document.getElementById('q').addEventListener('input',e=>{stan.q=e.target.value;render();});
+
+// ---- wczytywanie CSV (format ze skryptu: data;typ;tytul;zwyciezca;nip;link_pdf) ----
+function parseCSV(text){
+  text=text.replace(/^\uFEFF/,"");                 // usun BOM
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(!lines.length) return [];
+  const sep=lines[0].includes(";")?";":",";
+  const head=lines[0].split(sep).map(h=>h.trim().toLowerCase());
+  const idx=n=>head.findIndex(h=>h.includes(n));
+  const iData=idx("data"),iTyp=idx("typ"),iTyt=idx("tytul"),
+        iZw=idx("zwyciezca"),iNip=idx("nip"),iLink=idx("link"),iCpv=idx("cpv");
+  return lines.slice(1).map(line=>{
+    // prosty podzial z obsluga cudzyslowow
+    const cols=[];let cur="",inq=false;
+    for(const ch of line){
+      if(ch==='"'){inq=!inq;}
+      else if(ch===sep&&!inq){cols.push(cur);cur="";}
+      else cur+=ch;
+    }
+    cols.push(cur);
+    const g=i=>i>=0&&i<cols.length?cols[i].trim():"";
+    return {data:g(iData),typ:g(iTyp)||"ZAMOWIENIE",tytul:g(iTyt),
+            zwyciezca:g(iZw),nip:g(iNip),link:g(iLink)||"#",cpv:g(iCpv)};
+  }).filter(o=>o.tytul);
+}
+
+function wczytajPlik(file){
+  const r=new FileReader();
+  r.onload=ev=>{
+    const wynik=parseCSV(ev.target.result);
+    if(wynik.length){dane=wynik;document.querySelector('footer').textContent=
+      `Wczytano ${wynik.length} ogłoszeń z pliku ${file.name}.`;render();}
+    else alert("Nie udało się odczytać danych. Sprawdź, czy plik to CSV ze skryptu.");
+  };
+  r.readAsText(file,"UTF-8");
+}
+document.getElementById('file').addEventListener('change',e=>{
+  if(e.target.files[0])wczytajPlik(e.target.files[0]);
+});
+
+// ---- drag & drop ----
+const drop=document.getElementById('drop');
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+drop.addEventListener('drop',e=>{if(e.dataTransfer.files[0])wczytajPlik(e.dataTransfer.files[0]);});
+
+// ---- AUTOMATYCZNE wczytanie dane.json (wersja GitHub) ----
+// Strona przy otwarciu sama probuje pobrac dane.json lezacy obok niej.
+// Jesli go nie ma (np. skrypt jeszcze nie zadzialal), zostaja dane demo.
+fetch('dane.json?_=' + Date.now())   // ?_=... zapobiega cache'owaniu
+  .then(r => { if(!r.ok) throw new Error('brak'); return r.json(); })
+  .then(j => {
+    const lista = j.ogloszenia || j;
+    if(Array.isArray(lista) && lista.length){
+      dane = lista;
+      const info = j.aktualizacja ? ` · ostatnia aktualizacja: ${j.aktualizacja}` : '';
+      document.querySelector('footer').textContent =
+        `Wczytano ${lista.length} ogłoszeń z monitoringu${info}.`;
+      render();
+    }
+  })
+  .catch(() => { /* brak pliku - zostawiamy dane demonstracyjne */ });
+
+render();
+</script>
+</body>
+</html>
