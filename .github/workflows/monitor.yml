@@ -1,0 +1,37 @@
+name: Monitoring przetargow
+
+# KIEDY ma sie uruchamiac:
+on:
+  schedule:
+    - cron: '0 5 * * *'      # codziennie o 05:00 UTC (07:00 w Polsce latem)
+  workflow_dispatch:          # pozwala tez uruchomic recznie przyciskiem
+
+# Uprawnienie do zapisu pliku dane.json z powrotem do repozytorium
+permissions:
+  contents: write
+
+jobs:
+  monitoring:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pobierz repozytorium
+        uses: actions/checkout@v4
+
+      - name: Zainstaluj Pythona
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Zainstaluj zaleznosci
+        run: pip install -r requirements.txt
+
+      - name: Uruchom monitoring
+        run: python monitor_przetargow.py
+
+      - name: Zapisz dane.json do repozytorium
+        run: |
+          git config user.name "monitoring-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add dane.json nowe_przetargi.csv seen_ids.json 2>/dev/null || true
+          git commit -m "Aktualizacja danych: $(date +%F)" || echo "Brak zmian"
+          git push || echo "Nic do wyslania"
